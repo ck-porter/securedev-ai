@@ -23,9 +23,11 @@ def run_scan(target_directory):
     ]
 
     result = subprocess.run(
-        command,
+          command,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         shell=False,
         timeout=120
     )

@@ -1,19 +1,24 @@
-from securedev.scanner import run_scan
-from securedev.reporter import generate_report
+import argparse
+
+from securedev.agent import SecurityReviewAgent
 
 
 def main():
 
-    print("SecureDev AI - Security Scanner")
-    print("--------------------------------")
+    parser = argparse.ArgumentParser(
+        description="SecureDev AI - Automated Security Review"
+    )
 
-    findings = run_scan("examples")
+    parser.add_argument(
+        "directory",
+        help="Directory containing source code to scan"
+    )
 
-    print(f"Found {len(findings)} potential vulnerabilities.")
+    args = parser.parse_args()
 
-    report_path = generate_report(findings)
+    agent = SecurityReviewAgent(args.directory)
 
-    print(f"Security report generated: {report_path}")
+    agent.run()
 
 
 if __name__ == "__main__":
