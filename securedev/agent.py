@@ -27,7 +27,16 @@ class SecurityReviewAgent:
                 f"[Agent] Reviewing: {finding['check_id']}"
             )
 
-            analysis = analyze_finding(finding)
+            try:
+                analysis = analyze_finding(finding)
+
+            except Exception as error:
+                print(f"[Agent] AI analysis failed: {error}")
+
+                analysis = (
+                "AI analysis unavailable. "
+                "Review the Semgrep finding manually."
+            )
 
             assessments.append({
                 "finding": finding,
