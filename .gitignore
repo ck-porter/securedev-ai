@@ -1,1 +1,26 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Generated scan reports and history
+reports/*
+!reports/.gitkeep
+
+# Build artifacts
+build/
+dist/
+*.egg-info/

@@ -6,7 +6,6 @@ from securedev.verification import compare_findings
 
 
 class SecurityReviewAgent:
-
     def __init__(self, target_directory):
         self.target_directory = target_directory
         self.findings = []
@@ -21,25 +20,18 @@ class SecurityReviewAgent:
         print(f"[Agent] Found {len(self.findings)} findings.")
 
     def compare(self, previous_findings):
-        print("[Agent] Comparing findings with previous scan...")
-
         comparison = compare_findings(
             previous_findings,
-            self.findings
+            self.findings,
         )
 
         print(
-            f"[Agent] Persisting: "
-            f"{len(comparison['persisting'])}"
+            f"[Agent] Persisting: {len(comparison['persisting'])}"
         )
         print(
-            f"[Agent] No longer detected: "
-            f"{len(comparison['resolved'])}"
+            f"[Agent] No longer detected: {len(comparison['resolved'])}"
         )
-        print(
-            f"[Agent] New findings: "
-            f"{len(comparison['new'])}"
-        )
+        print(f"[Agent] New findings: {len(comparison['new'])}")
 
         return comparison
 
@@ -49,22 +41,28 @@ class SecurityReviewAgent:
         assessments = []
 
         for finding in self.findings:
-            print(f"[Agent] Reviewing: {finding['check_id']}")
+            rule_id = finding.get("check_id", "Unknown")
+            print(f"[Agent] Reviewing: {rule_id}")
 
             try:
-                analysis = analyze_finding(finding)
+                result = analyze_finding(finding)
+                analysis = result["analysis"]
+                complete = result["complete"]
+
+                status = "completed" if complete else "truncated"
 
             except Exception as error:
                 print(f"[Agent] AI analysis failed: {error}")
-
                 analysis = (
                     "AI analysis unavailable. "
-                    "Review the Semgrep finding manually."
+                    "Review the original scanner finding manually."
                 )
+                status = "failed"
 
             assessments.append({
                 "finding": finding,
-                "analysis": analysis
+                "analysis": analysis,
+                "status": status,
             })
 
         return assessments
@@ -74,14 +72,10 @@ class SecurityReviewAgent:
             self.history_path
         )
 
+        # Do not update history unless the scan succeeds.
         self.scan()
 
         comparison = self.compare(previous_findings)
-
-        self.storage.save_findings(
-            self.findings,
-            self.history_path
-        )
 
         assessments = self.analyze() if self.findings else []
 
@@ -98,22 +92,38 @@ class SecurityReviewAgent:
                 f"{len(comparison['resolved'])}\n"
             )
             report.write(
-                f"- New findings: "
-                f"{len(comparison['new'])}\n"
+                f"- New findings: {len(comparison['new'])}\n"
             )
 
             if assessments:
-                report.write("\n# AI Security Assessments\n\n")
+                report.write("\n# AI-Assisted Assessments\n\n")
+                report.write(
+                    "These assessments are AI-generated suggestions "
+                    "and require human review.\n\n"
+                )
 
                 for index, assessment in enumerate(
                     assessments,
-                    start=1
+                    start=1,
                 ):
+                    report.write(f"## Assessment {index}\n\n")
                     report.write(
-                        f"## AI Assessment {index}\n\n"
+                        f"**Status:** {assessment['status']}\n\n"
                     )
+                    if assessment["status"] == "truncated":
+                        report.write(
+                            "**Warning:** The AI response reached its generation limit "
+                            "and may be incomplete.\n\n"
+                        )
+
                     report.write(assessment["analysis"])
                     report.write("\n\n---\n\n")
+
+        # Save history only after the scan and report succeed.
+        self.storage.save_findings(
+            self.findings,
+            self.history_path,
+        )
 
         print(f"[Agent] Report generated: {report_path}")
 
